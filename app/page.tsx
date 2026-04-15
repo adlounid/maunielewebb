@@ -64,6 +64,11 @@ function CheckoutForm({
       return null;
     }
 
+    const submitResult = await elements.submit();
+    if (submitResult.error) {
+      return { error: submitResult.error };
+    }
+
     const returnUrl =
       typeof window !== "undefined"
         ? `${window.location.origin}?checkout=complete`
