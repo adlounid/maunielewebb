@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { AddressElement, Elements, ExpressCheckoutElement, LinkAuthenticationElement, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
+import { AddressElement, Elements, LinkAuthenticationElement, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { loadStripe } from "@stripe/stripe-js";
 import { ArrowRight, CheckCircle2, CreditCard, HeartHandshake, Loader2, Lock, Menu, Minus, Plus, ShieldCheck, ShoppingBag, Sparkles, Star, X } from "lucide-react";
 import { PRODUCTS, Product } from "@/lib/getProducts";
@@ -22,8 +22,6 @@ interface Summary {
   total: number;
 }
 
-type DeviceType = "iphone" | "android" | "desktop";
-
 function formatPrice(value: number) {
   return SEK.format(value);
 }
@@ -36,28 +34,15 @@ function getSummary(cart: CartItem[]): Summary {
 
 function CheckoutForm({
   total,
-  cart,
-  deviceType,
   onSuccess,
 }: {
   total: number;
-  cart: CartItem[];
-  deviceType: DeviceType;
   onSuccess: () => void;
 }) {
   const stripe = useStripe();
   const elements = useElements();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [expressReady, setExpressReady] = useState(false);
-  const [walletLabel, setWalletLabel] = useState("");
-  const [walletStatusText, setWalletStatusText] = useState("");
-
-  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const lineItems = cart.map((item) => ({
-    name: `${item.name} x${item.quantity}`,
-    amount: item.price * item.quantity * 100,
-  }));
 
   async function confirmElementsPayment() {
     if (!stripe || !elements) {
@@ -100,117 +85,20 @@ function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4">
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <div>
-            <div className="text-xs uppercase tracking-[0.24em] text-[#8a6d52]">Snabbkassa</div>
-            <div className="mt-1 text-sm text-[#5f4f3f]">
-              {walletLabel || "Apple Pay och Google Pay visas när Stripe och enheten stöder det."}
-            </div>
-          </div>
-        </div>
-        <div className="mb-4 grid grid-cols-2 gap-3">
-          <div className={`rounded-2xl border px-4 py-3 text-sm ${deviceType === "iphone" ? "border-[#1d1a16] bg-[#1d1a16] text-white" : "border-[#e8decf] bg-white text-[#1d1a16]"}`}>
-            <div className="text-xs uppercase tracking-[0.18em] opacity-70">Apple Pay</div>
-            <div className="mt-1 font-semibold">{deviceType === "iphone" ? "Prioriterad på iPhone" : "Tillgänglig när Safari + Wallet stöds"}</div>
-          </div>
-          <div className={`rounded-2xl border px-4 py-3 text-sm ${deviceType === "android" ? "border-[#1d1a16] bg-[#1d1a16] text-white" : "border-[#e8decf] bg-white text-[#1d1a16]"}`}>
-            <div className="text-xs uppercase tracking-[0.18em] opacity-70">Google Pay</div>
-            <div className="mt-1 font-semibold">{deviceType === "android" ? "Prioriterad på Android" : "Tillgänglig när browsern stöder det"}</div>
-          </div>
-        </div>
-        <ExpressCheckoutElement
-          options={{
-            layout: { maxColumns: 1, maxRows: 2, overflow: "never" },
-            paymentMethodOrder: ["apple_pay", "google_pay", "link"],
-            wallets: {
-              applePay: deviceType === "iphone" ? "always" : "auto",
-              googlePay: deviceType === "android" ? "always" : "auto",
-            },
-          }}
-          onReady={(event) => {
-            const available = event.availablePaymentMethods;
-            const labels = [];
-            if (available?.applePay) labels.push("Apple Pay tillgängligt");
-            if (available?.googlePay) labels.push("Google Pay tillgängligt");
-            setWalletLabel(labels.join(" • "));
-            setExpressReady(Boolean(available?.applePay || available?.googlePay));
-            if (available?.applePay || available?.googlePay) {
-              setWalletStatusText("Snabbbetalning är tillgänglig på den här enheten.");
-              return;
-            }
-            if (deviceType === "iphone") {
-              setWalletStatusText("Apple Pay är inte tillgängligt just nu. Kontrollera Safari, Wallet och att domänen är registrerad i Stripe.");
-              return;
-            }
-            if (deviceType === "android") {
-              setWalletStatusText("Google Pay är inte tillgängligt just nu. Kontrollera browserstöd och att Google Pay är aktiverat på enheten.");
-              return;
-            }
-            setWalletStatusText("Apple Pay eller Google Pay visas när Stripe och enheten stöder det.");
-          }}
-          onLoadError={() => {
-            setExpressReady(false);
-            setWalletLabel("");
-            setWalletStatusText("Snabbbetalning kunde inte laddas. Fortsätt med kortbetalning nedan.");
-          }}
-          onClick={(event) => {
-            event.resolve({
-              emailRequired: true,
-              phoneNumberRequired: true,
-              shippingAddressRequired: true,
-              allowedShippingCountries: ["SE"],
-              lineItems: [
-                ...lineItems,
-                ...(total > subtotal
-                  ? [{ name: "Frakt", amount: (total - subtotal) * 100 }]
-                  : []),
-              ],
-            });
-          }}
-          onConfirm={async (event) => {
-            if (!stripe || !elements) {
-              event.paymentFailed();
-              return;
-            }
-
-            setBusy(true);
-            setError("");
-            const result = await confirmElementsPayment();
-            const stripeError = result?.error;
-            const paymentIntent = result?.paymentIntent;
-            if (stripeError) {
-              setError(stripeError.message || "Snabbbetalningen kunde inte genomföras.");
-              event.paymentFailed({ reason: "fail" });
-              setBusy(false);
-              return;
-            }
-            if (paymentIntent?.status === "succeeded") {
-              onSuccess();
-            } else {
-              event.paymentFailed({ reason: "fail" });
-            }
-            setBusy(false);
-          }}
-        />
-        <div className={`mt-3 rounded-2xl px-4 py-3 text-xs leading-6 ${expressReady ? "border border-green-200 bg-green-50 text-green-700" : "border border-[#ead8c4] bg-[#f8f1e7] text-[#8a6d52]"}`}>
-          {walletStatusText || "Wallet-betalning visas automatiskt när Apple Pay eller Google Pay stöds på den här enheten."}
-        </div>
-      </div>
       <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4"><LinkAuthenticationElement /></div>
       <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4"><AddressElement options={{ mode: "shipping" }} /></div>
       <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4">
         <div className="mb-3">
           <div className="text-xs uppercase tracking-[0.24em] text-[#8a6d52]">Betalsätt</div>
-          <div className="mt-1 text-sm text-[#5f4f3f]">Kort, Klarna och Amazon Pay visas här när de är aktiverade i Stripe och tillgängliga för köpet.</div>
+          <div className="mt-1 text-sm text-[#5f4f3f]">Kort, Apple Pay, Google Pay, Klarna och Amazon Pay visas här när de är aktiverade i Stripe och tillgängliga för köpet.</div>
         </div>
         <PaymentElement
           options={{
             layout: "tabs",
             paymentMethodOrder: ["card", "klarna", "amazon_pay", "link"],
             wallets: {
-              applePay: "never",
-              googlePay: "never",
+              applePay: "auto",
+              googlePay: "auto",
             },
           }}
         />
@@ -235,7 +123,6 @@ export default function Home() {
   const [checkoutError, setCheckoutError] = useState("");
   const [clientSecret, setClientSecret] = useState("");
   const [serverSummary, setServerSummary] = useState<Summary | null>(null);
-  const [deviceType, setDeviceType] = useState<DeviceType>("desktop");
 
   const filteredProducts = category === "Alla" ? PRODUCTS : PRODUCTS.filter((product) => product.category === category);
   const localSummary = getSummary(cart);
@@ -246,19 +133,6 @@ export default function Home() {
     document.body.style.overflow = cartOpen || checkoutOpen || selected ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [cartOpen, checkoutOpen, selected]);
-
-  useEffect(() => {
-    const userAgent = typeof navigator !== "undefined" ? navigator.userAgent.toLowerCase() : "";
-    if (/iphone|ipad|ipod/.test(userAgent)) {
-      setDeviceType("iphone");
-      return;
-    }
-    if (/android/.test(userAgent)) {
-      setDeviceType("android");
-      return;
-    }
-    setDeviceType("desktop");
-  }, []);
 
   function goTo(next: PageKey) {
     setPage(next);
@@ -577,7 +451,7 @@ export default function Home() {
                 <>
                   <div className="mb-6 max-w-lg"><div className="text-xs uppercase tracking-[0.28em] text-[#8a6d52]">Säker Stripe-betalning</div><h3 className="mt-3 text-3xl font-semibold">Slutför köpet</h3><p className="mt-2 text-sm leading-7 text-[#5f4f3f]">Alla summor är redan räknade från kundvagnen, så checkouten visar rätt total direkt.</p></div>
                   <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe", variables: { colorPrimary: "#1d1a16", colorBackground: "#fffdfa", colorText: "#1d1a16", borderRadius: "18px" } } }}>
-                    <CheckoutForm total={summary.total} cart={cart} deviceType={deviceType} onSuccess={completeCheckout} />
+                    <CheckoutForm total={summary.total} onSuccess={completeCheckout} />
                   </Elements>
                 </>
               )}
