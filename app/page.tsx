@@ -51,6 +51,7 @@ function CheckoutForm({
   const [error, setError] = useState("");
   const [expressReady, setExpressReady] = useState(false);
   const [walletLabel, setWalletLabel] = useState("");
+  const [walletStatusText, setWalletStatusText] = useState("");
 
   const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const lineItems = cart.map((item) => ({
@@ -99,8 +100,18 @@ function CheckoutForm({
           <div>
             <div className="text-xs uppercase tracking-[0.24em] text-[#8a6d52]">Snabbkassa</div>
             <div className="mt-1 text-sm text-[#5f4f3f]">
-              {walletLabel || (deviceType === "iphone" ? "Apple Pay om din enhet stöder det." : deviceType === "android" ? "Google Pay om din enhet stöder det." : "Snabbbetalning visas när browsern stöder det.")}
+              {walletLabel || "Apple Pay och Google Pay visas automatiskt när enheten och browsern stöder det."}
             </div>
+          </div>
+        </div>
+        <div className="mb-4 grid grid-cols-2 gap-3">
+          <div className={`rounded-2xl border px-4 py-3 text-sm ${deviceType === "iphone" ? "border-[#1d1a16] bg-[#1d1a16] text-white" : "border-[#e8decf] bg-white text-[#1d1a16]"}`}>
+            <div className="text-xs uppercase tracking-[0.18em] opacity-70">Apple Pay</div>
+            <div className="mt-1 font-semibold">{deviceType === "iphone" ? "Prioriterad på iPhone" : "Tillgänglig när Safari + Wallet stöds"}</div>
+          </div>
+          <div className={`rounded-2xl border px-4 py-3 text-sm ${deviceType === "android" ? "border-[#1d1a16] bg-[#1d1a16] text-white" : "border-[#e8decf] bg-white text-[#1d1a16]"}`}>
+            <div className="text-xs uppercase tracking-[0.18em] opacity-70">Google Pay</div>
+            <div className="mt-1 font-semibold">{deviceType === "android" ? "Prioriterad på Android" : "Tillgänglig när browsern stöder det"}</div>
           </div>
         </div>
         <ExpressCheckoutElement
@@ -118,10 +129,24 @@ function CheckoutForm({
             if (available?.googlePay) labels.push("Google Pay tillgängligt");
             setWalletLabel(labels.join(" • "));
             setExpressReady(Boolean(available?.applePay || available?.googlePay));
+            if (available?.applePay || available?.googlePay) {
+              setWalletStatusText("Snabbbetalning är tillgänglig på den här enheten.");
+              return;
+            }
+            if (deviceType === "iphone") {
+              setWalletStatusText("Apple Pay är inte tillgängligt just nu. Kontrollera Safari, Wallet och att domänen är registrerad i Stripe.");
+              return;
+            }
+            if (deviceType === "android") {
+              setWalletStatusText("Google Pay är inte tillgängligt just nu. Kontrollera browserstöd och att Google Pay är aktiverat på enheten.");
+              return;
+            }
+            setWalletStatusText("Apple Pay eller Google Pay visas när browsern och enheten stöder det.");
           }}
           onLoadError={() => {
             setExpressReady(false);
             setWalletLabel("");
+            setWalletStatusText("Snabbbetalning kunde inte laddas. Fortsätt med kortbetalning nedan.");
           }}
           onClick={(event) => {
             event.resolve({
@@ -162,7 +187,9 @@ function CheckoutForm({
             setBusy(false);
           }}
         />
-        {!expressReady && <div className="mt-3 text-xs text-[#8a6d52]">Wallet-betalning visas automatiskt när Apple Pay eller Google Pay stöds på den här enheten.</div>}
+        <div className={`mt-3 rounded-2xl px-4 py-3 text-xs leading-6 ${expressReady ? "border border-green-200 bg-green-50 text-green-700" : "border border-[#ead8c4] bg-[#f8f1e7] text-[#8a6d52]"}`}>
+          {walletStatusText || "Wallet-betalning visas automatiskt när Apple Pay eller Google Pay stöds på den här enheten."}
+        </div>
       </div>
       <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4"><LinkAuthenticationElement /></div>
       <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4"><AddressElement options={{ mode: "shipping" }} /></div>
