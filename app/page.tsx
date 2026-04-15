@@ -85,16 +85,33 @@ function CheckoutForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4"><LinkAuthenticationElement /></div>
-      <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4"><AddressElement options={{ mode: "shipping" }} /></div>
       <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4">
         <div className="mb-3">
-          <div className="text-xs uppercase tracking-[0.24em] text-[#8a6d52]">Betalsätt</div>
-          <div className="mt-1 text-sm text-[#5f4f3f]">Kort, Apple Pay, Google Pay, Klarna och Amazon Pay visas här när de är aktiverade i Stripe och tillgängliga för köpet.</div>
+          <div className="text-xs uppercase tracking-[0.24em] text-[#8a6d52]">Kontakt</div>
+          <div className="mt-1 text-sm text-[#5f4f3f]">Används för orderbekräftelse och kvitto.</div>
+        </div>
+        <LinkAuthenticationElement />
+      </div>
+      <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4">
+        <div className="mb-3">
+          <div className="text-xs uppercase tracking-[0.24em] text-[#8a6d52]">Leverans</div>
+          <div className="mt-1 text-sm text-[#5f4f3f]">Ange namn och adress för beställningen.</div>
+        </div>
+        <AddressElement options={{ mode: "shipping" }} />
+      </div>
+      <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4">
+        <div className="mb-3">
+          <div className="text-xs uppercase tracking-[0.24em] text-[#8a6d52]">Betalning</div>
+          <div className="mt-1 text-sm text-[#5f4f3f]">Kort, Apple Pay, Google Pay, Klarna och Amazon Pay visas här när Stripe tillåter dem för köpet.</div>
         </div>
         <PaymentElement
           options={{
-            layout: "tabs",
+            layout: {
+              type: "accordion",
+              defaultCollapsed: false,
+              radios: true,
+              spacedAccordionItems: true,
+            },
             paymentMethodOrder: ["card", "klarna", "amazon_pay", "link"],
             wallets: {
               applePay: "auto",
@@ -444,12 +461,12 @@ export default function Home() {
             </div>
             <div className="relative p-4 sm:max-h-[92vh] sm:overflow-y-auto sm:p-6 lg:p-8">
               {(checkoutState === "ready" || checkoutState === "error") && <button onClick={() => setCheckoutOpen(false)} className="absolute right-5 top-5 rounded-full bg-[#f3eadf] p-2"><X size={18} /></button>}
-              {checkoutState === "loading" && <div className="flex min-h-[28rem] flex-col items-center justify-center text-center"><Loader2 className="animate-spin text-[#8a6d52]" size={42} /><h3 className="mt-5 text-2xl font-semibold">Startar säker kassa</h3><p className="mt-2 max-w-md text-sm leading-7 text-[#5f4f3f]">Vi räknar totalsumman från varukorgen och hämtar rätt betalningssession från Stripe.</p></div>}
+              {checkoutState === "loading" && <div className="flex min-h-[28rem] flex-col items-center justify-center text-center"><Loader2 className="animate-spin text-[#8a6d52]" size={42} /><h3 className="mt-5 text-2xl font-semibold">Startar checkout</h3><p className="mt-2 max-w-md text-sm leading-7 text-[#5f4f3f]">Vi förbereder ordern och hämtar betalningssessionen från Stripe.</p></div>}
               {checkoutState === "error" && <div className="flex min-h-[28rem] flex-col items-center justify-center text-center"><div className="rounded-full bg-red-100 p-4 text-red-700"><X size={24} /></div><h3 className="mt-5 text-2xl font-semibold">Kassan kunde inte startas</h3><p className="mt-2 max-w-md text-sm leading-7 text-[#5f4f3f]">{checkoutError}</p><button onClick={() => setCheckoutOpen(false)} className="mt-6 rounded-full bg-[#1d1a16] px-5 py-3 text-sm font-semibold text-white">Tillbaka</button></div>}
               {checkoutState === "success" && <div className="flex min-h-[28rem] flex-col items-center justify-center text-center"><div className="rounded-full bg-green-100 p-4 text-green-700"><CheckCircle2 size={26} /></div><h3 className="mt-5 text-3xl font-semibold">Tack för din beställning</h3><p className="mt-2 max-w-md text-sm leading-7 text-[#5f4f3f]">Betalningen gick igenom och kundvagnen är nu rensad.</p><button onClick={() => setCheckoutOpen(false)} className="mt-6 rounded-full bg-[#1d1a16] px-5 py-3 text-sm font-semibold text-white">Fortsätt handla</button></div>}
               {checkoutState === "ready" && clientSecret && stripePromise && (
                 <>
-                  <div className="mb-6 max-w-lg"><div className="text-xs uppercase tracking-[0.28em] text-[#8a6d52]">Säker Stripe-betalning</div><h3 className="mt-3 text-3xl font-semibold">Slutför köpet</h3><p className="mt-2 text-sm leading-7 text-[#5f4f3f]">Alla summor är redan räknade från kundvagnen, så checkouten visar rätt total direkt.</p></div>
+                  <div className="mb-6 max-w-lg"><div className="text-xs uppercase tracking-[0.28em] text-[#8a6d52]">Checkout</div><h3 className="mt-3 text-3xl font-semibold">Slutför din beställning</h3><p className="mt-2 text-sm leading-7 text-[#5f4f3f]">Välj betalmetod, bekräfta uppgifterna och genomför köpet direkt i samma fönster.</p></div>
                   <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe", variables: { colorPrimary: "#1d1a16", colorBackground: "#fffdfa", colorText: "#1d1a16", borderRadius: "18px" } } }}>
                     <CheckoutForm total={summary.total} onSuccess={completeCheckout} />
                   </Elements>
