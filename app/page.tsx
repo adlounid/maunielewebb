@@ -105,7 +105,7 @@ function CheckoutForm({
           <div>
             <div className="text-xs uppercase tracking-[0.24em] text-[#8a6d52]">Snabbkassa</div>
             <div className="mt-1 text-sm text-[#5f4f3f]">
-              {walletLabel || "Apple Pay, Google Pay, Klarna och Amazon Pay visas när Stripe och enheten stöder det."}
+              {walletLabel || "Apple Pay och Google Pay visas när Stripe och enheten stöder det."}
             </div>
           </div>
         </div>
@@ -122,7 +122,7 @@ function CheckoutForm({
         <ExpressCheckoutElement
           options={{
             layout: { maxColumns: 1, maxRows: 2, overflow: "never" },
-            paymentMethodOrder: ["apple_pay", "google_pay", "amazon_pay", "klarna", "link"],
+            paymentMethodOrder: ["apple_pay", "google_pay", "link"],
             wallets: {
               applePay: deviceType === "iphone" ? "always" : "auto",
               googlePay: deviceType === "android" ? "always" : "auto",
@@ -147,7 +147,7 @@ function CheckoutForm({
               setWalletStatusText("Google Pay är inte tillgängligt just nu. Kontrollera browserstöd och att Google Pay är aktiverat på enheten.");
               return;
             }
-            setWalletStatusText("Apple Pay, Google Pay, Klarna eller Amazon Pay visas när Stripe och enheten stöder det.");
+            setWalletStatusText("Apple Pay eller Google Pay visas när Stripe och enheten stöder det.");
           }}
           onLoadError={() => {
             setExpressReady(false);
@@ -199,7 +199,22 @@ function CheckoutForm({
       </div>
       <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4"><LinkAuthenticationElement /></div>
       <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4"><AddressElement options={{ mode: "shipping" }} /></div>
-      <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4"><PaymentElement /></div>
+      <div className="rounded-[28px] border border-[#e8decf] bg-[#fffdfa] p-4">
+        <div className="mb-3">
+          <div className="text-xs uppercase tracking-[0.24em] text-[#8a6d52]">Betalsätt</div>
+          <div className="mt-1 text-sm text-[#5f4f3f]">Kort, Klarna och Amazon Pay visas här när de är aktiverade i Stripe och tillgängliga för köpet.</div>
+        </div>
+        <PaymentElement
+          options={{
+            layout: "tabs",
+            paymentMethodOrder: ["card", "klarna", "amazon_pay", "link"],
+            wallets: {
+              applePay: "never",
+              googlePay: "never",
+            },
+          }}
+        />
+      </div>
       {error && <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
       <button type="submit" disabled={!stripe || !elements || busy} className="flex w-full items-center justify-center gap-2 rounded-full bg-[#1d1a16] px-6 py-4 text-sm font-semibold text-white transition hover:-translate-y-0.5 disabled:opacity-60">
         {busy ? <Loader2 className="animate-spin" size={18} /> : <Lock size={18} />}Betala {formatPrice(total)}
