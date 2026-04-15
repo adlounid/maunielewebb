@@ -105,7 +105,7 @@ function CheckoutForm({
           <div>
             <div className="text-xs uppercase tracking-[0.24em] text-[#8a6d52]">Snabbkassa</div>
             <div className="mt-1 text-sm text-[#5f4f3f]">
-              {walletLabel || "Apple Pay och Google Pay visas automatiskt när enheten och browsern stöder det."}
+              {walletLabel || "Apple Pay, Google Pay, Klarna och Amazon Pay visas när Stripe och enheten stöder det."}
             </div>
           </div>
         </div>
@@ -122,6 +122,7 @@ function CheckoutForm({
         <ExpressCheckoutElement
           options={{
             layout: { maxColumns: 1, maxRows: 2, overflow: "never" },
+            paymentMethodOrder: ["apple_pay", "google_pay", "amazon_pay", "klarna", "link"],
             wallets: {
               applePay: deviceType === "iphone" ? "always" : "auto",
               googlePay: deviceType === "android" ? "always" : "auto",
@@ -146,7 +147,7 @@ function CheckoutForm({
               setWalletStatusText("Google Pay är inte tillgängligt just nu. Kontrollera browserstöd och att Google Pay är aktiverat på enheten.");
               return;
             }
-            setWalletStatusText("Apple Pay eller Google Pay visas när browsern och enheten stöder det.");
+            setWalletStatusText("Apple Pay, Google Pay, Klarna eller Amazon Pay visas när Stripe och enheten stöder det.");
           }}
           onLoadError={() => {
             setExpressReady(false);

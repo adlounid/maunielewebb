@@ -67,7 +67,7 @@ export async function POST(request) {
     const paymentIntent = await stripe.paymentIntents.create({
       amount: total * 100,
       currency: "sek",
-      automatic_payment_methods: { enabled: true },
+      payment_method_types: ["card", "klarna", "amazon_pay", "link"],
       description: orderSummary || "Beställning från Mauniele",
       metadata: {
         order_number: orderNumber,
